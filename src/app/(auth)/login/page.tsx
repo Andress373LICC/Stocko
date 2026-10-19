@@ -29,7 +29,7 @@ export default function LoginPage() {
   return (
     <>
       <h1 className="text-xl font-bold">Iniciar sesión</h1>
-      <p className="mt-1 text-sm text-slate-500">Bienvenido de vuelta a Stocko.</p>
+      <p className="mt-1 text-sm text-slate-500">Bienvenido de vuelta a Stockery.</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <div>
           <label className="label" htmlFor="email">Correo electrónico</label>

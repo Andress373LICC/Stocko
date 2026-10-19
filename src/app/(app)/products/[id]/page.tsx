@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/session';
 import { dateTime } from '@/lib/format';
 import { PageHeader } from '@/components/ui';
@@ -16,6 +16,7 @@ export default async function EditProductPage({ params }: { params: { id: string
 
   const { data: product } = await supabase.from('products').select('*').eq('id', params.id).eq('business_id', business.id).maybeSingle();
   if (!product) notFound();
+  if (product.group_id) redirect(`/products/group/${product.group_id}`);
 
   const [{ data: categories }, { data: movements }] = await Promise.all([
     supabase.from('categories').select('id, name').eq('business_id', business.id).order('name'),

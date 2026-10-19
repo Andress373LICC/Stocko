@@ -52,7 +52,7 @@ export default async function SalesPage({ searchParams }: { searchParams: { q?: 
                   <tr key={s.id} className="hover:bg-slate-50">
                     <td className="td font-semibold"><Link href={`/sales/${s.id}`} className="text-brand-700 hover:underline">#{s.number}</Link>{s.status === 'voided' && <span className="badge ml-2 bg-red-100 text-red-700">Anulada</span>}</td>
                     <td className="td whitespace-nowrap">{dateTime(s.created_at, business)}</td>
-                    <td className="td">{s.customer_name || 'Consumidor final'}</td>
+                    <td className="td">{s.customer_name || 'Cliente general'}</td>
                     <td className="td">{s.profiles?.full_name || '—'}</td>
                     <td className="td">{PAYMENT_LABELS[s.payment_method as keyof typeof PAYMENT_LABELS]}</td>
                     <td className={`td text-right font-semibold ${s.status === 'voided' ? 'text-slate-400 line-through' : ''}`}>{money(s.total, business)}</td>

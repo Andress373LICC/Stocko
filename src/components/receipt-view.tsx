@@ -75,7 +75,7 @@ export function ReceiptView({ business, sale, canVoid, justCreated }: { business
         {voided && <p className="my-3 rounded border-2 border-red-500 py-1 text-center font-bold uppercase tracking-widest text-red-600">Anulada</p>}
 
         <div className={`my-4 border-y border-dashed border-slate-300 py-3 ${ticket ? '' : 'grid grid-cols-2 gap-4'}`}>
-          <p><span className="text-slate-500">Cliente:</span> {sale.customer_name || 'Consumidor final'}</p>
+          <p><span className="text-slate-500">Cliente:</span> {sale.customer_name || 'Cliente general'}</p>
           <p><span className="text-slate-500">Atendió:</span> {sale.profiles?.full_name || '—'}</p>
         </div>
 
@@ -107,7 +107,7 @@ export function ReceiptView({ business, sale, canVoid, justCreated }: { business
         </dl>
 
         {business.receipt_footer && <p className="mt-6 text-center text-slate-600">{business.receipt_footer}</p>}
-        <p className="mt-2 text-center text-[10px] text-slate-400">Comprobante generado con Stocko</p>
+        <p className="mt-2 text-center text-[10px] text-slate-400">Comprobante generado con Stockery</p>
       </div>
 
       <Modal open={voidOpen} onClose={() => setVoidOpen(false)} title="Anular venta">

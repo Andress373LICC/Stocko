@@ -132,7 +132,7 @@ export function SettingsClient({ business, role, currentUserId, members }: { bus
             <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-brand-600" disabled={disabled} checked={f.prices_include_tax} onChange={(e) => setF((p) => ({ ...p, prices_include_tax: e.target.checked }))} />
             Los precios de mis productos ya incluyen el impuesto
           </label>
-          <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">Los cambios aplican a las ventas nuevas; las anteriores conservan sus montos. Las tasas son valores sugeridos: confírmalas con tu contador. Los recibos de Stocko son comprobantes internos y no sustituyen la factura fiscal autorizada por tu autoridad tributaria.</p>
+          <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">Los cambios aplican a las ventas nuevas; las anteriores conservan sus montos. Las tasas son valores sugeridos: confírmalas con tu contador. Los recibos de Stockery son comprobantes internos y no sustituyen la factura fiscal autorizada por tu autoridad tributaria.</p>
         </div>
 
         {isOwner && <button className="btn-primary" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>}
@@ -142,7 +142,7 @@ export function SettingsClient({ business, role, currentUserId, members }: { bus
         <h2 className="font-semibold">Equipo</h2>
         {isOwner && (
           <div className="rounded-lg bg-brand-50 p-4">
-            <p className="text-sm text-slate-700">Para invitar a un cajero, pídele que cree su cuenta en Stocko y elija <b>“Unirme a un negocio”</b> con este código:</p>
+            <p className="text-sm text-slate-700">Para invitar a un cajero, pídele que cree su cuenta en Stockery y elija <b>“Unirme a un negocio”</b> con este código:</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <code className="rounded-lg bg-white px-4 py-2 font-mono text-lg font-bold tracking-widest ring-1 ring-brand-200">{code}</code>
               <button className="btn-secondary btn-sm" onClick={() => { navigator.clipboard.writeText(code); toast('Código copiado', 'success'); }}><Copy size={14} /> Copiar</button>

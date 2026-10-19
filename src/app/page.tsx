@@ -3,12 +3,12 @@ import { ScanBarcode, Package, BarChart3, Receipt, Globe2, Users, ArrowRight, Ch
 import { Logo } from '@/components/logo';
 
 const features = [
-  { icon: ScanBarcode, title: 'Punto de venta con escáner', text: 'Conecta tu lector USB o Bluetooth y vende en segundos. También puedes escanear con la cámara del celular.' },
-  { icon: Package, title: 'Inventario en tiempo real', text: 'Control de stock, alertas de stock bajo, costos, categorías, fotos e historial de movimientos.' },
+  { icon: ScanBarcode, title: 'Venta rápida con escáner', text: 'Búsqueda instantánea (Ctrl + K), lector USB o Bluetooth y cámara del celular. Vende en segundos, sin filas.' },
+  { icon: Package, title: 'Inventario en tiempo real', text: 'Variantes por talla y color, alertas de stock bajo, lista de pedido, costos, fotos e historial de movimientos.' },
   { icon: Receipt, title: 'Recibos y facturas', text: 'Comprobantes listos para imprimir en ticket térmico (80 mm) o en hoja carta/A4.' },
   { icon: BarChart3, title: 'Reportes claros', text: 'Ventas por día, productos más vendidos, ganancias, métodos de pago y rendimiento por cajero.' },
   { icon: Globe2, title: 'Listo para tu país', text: 'Detectamos tu país y configuramos moneda e impuestos automáticamente. Tú solo vendes.' },
-  { icon: Users, title: 'Para todo tu equipo', text: 'Invita cajeros con un código. Cada quien ve solo lo que le corresponde.' },
+  { icon: Users, title: 'Clientes y equipo', text: 'Registra clientes con nombre y teléfono, consulta su historial e invita cajeros con un código.' },
 ];
 
 export default function Home() {
@@ -30,7 +30,7 @@ export default function Home() {
             Controla tu negocio <span className="text-brand-600">sin complicaciones</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
-            Stocko te ayuda a vender, controlar tu inventario y entender tus números desde cualquier dispositivo. Sin instalar nada.
+            Stockery te ayuda a vender, controlar tu inventario y entender tus números desde cualquier dispositivo. Sin instalar nada.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link href="/signup" className="btn-primary px-6 py-3 text-base">
@@ -59,7 +59,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-500">
-        © {new Date().getFullYear()} Stocko. Todos los derechos reservados.
+        © {new Date().getFullYear()} Stockery. Todos los derechos reservados.
       </footer>
     </div>
   );

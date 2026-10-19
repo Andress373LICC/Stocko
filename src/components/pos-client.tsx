@@ -3,17 +3,20 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Banknote, Camera, CreditCard, Landmark, Minus, Package, Plug, Plus, ScanBarcode, Search, ShoppingCart, Trash2, Unplug, Wallet } from 'lucide-react';
+import { Banknote, Camera, CreditCard, Landmark, Layers, Minus, Package, Plug, Plus, ScanBarcode, Search, ShoppingCart, Trash2, Unplug, Wallet } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { computeTotals, money } from '@/lib/format';
 import { beep } from '@/lib/beep';
 import { useKeyboardScanner } from '@/lib/scanner/useKeyboardScanner';
 import { connectSerialScanner, serialSupported, type SerialScanner } from '@/lib/scanner/serial';
 import { CameraScanner } from '@/components/camera-scanner';
+import { CustomerPicker, type PickerCustomer } from '@/components/customer-picker';
+import { Modal } from '@/components/ui';
 import { useToast } from '@/components/toast';
-import type { Business, Category, PaymentMethod, Product } from '@/lib/types';
+import { displayName, type Business, type Category, type PaymentMethod, type Product } from '@/lib/types';
 
-type PosProduct = Pick<Product, 'id' | 'category_id' | 'sku' | 'barcode' | 'name' | 'price' | 'stock' | 'track_stock' | 'image_url'>;
+type PosProduct = Pick<Product, 'id' | 'category_id' | 'sku' | 'barcode' | 'name' | 'price' | 'stock' | 'min_stock' | 'track_stock' | 'image_url' | 'group_id' | 'variant_label'>;
+type Tile = { kind: 'single'; product: PosProduct } | { kind: 'group'; id: string; name: string; image_url: string | null; variants: PosProduct[] };
 interface CartLine { product: PosProduct; qty: number }
 
 const METHODS: { id: PaymentMethod; label: string; icon: typeof Banknote }[] = [
@@ -23,10 +26,12 @@ const METHODS: { id: PaymentMethod; label: string; icon: typeof Banknote }[] = [
   { id: 'other', label: 'Otro', icon: Wallet },
 ];
 
-export function PosClient({ business, products, categories, customers }: { business: Business; products: PosProduct[]; categories: Category[]; customers: { id: string; name: string }[] }) {
+export function PosClient({ business, products, categories, customers: initialCustomers, initialQuery = '' }: { business: Business; products: PosProduct[]; categories: Category[]; customers: PickerCustomer[]; initialQuery?: string }) {
   const router = useRouter();
   const toast = useToast();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
+  const [customers, setCustomers] = useState(initialCustomers);
+  const [picker, setPicker] = useState<Extract<Tile, { kind: 'group' }> | null>(null);
   const [category, setCategory] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerId, setCustomerId] = useState('');
@@ -44,7 +49,7 @@ export function PosClient({ business, products, categories, customers }: { busin
   const addProduct = useCallback((p: PosProduct) => {
     const current = cart.find((l) => l.product.id === p.id)?.qty ?? 0;
     if (p.track_stock && current + 1 > p.stock) {
-      toast(`Stock insuficiente de "${p.name}" (disponible: ${p.stock})`, 'error');
+      toast(`Stock insuficiente de "${displayName(p)}" (disponible: ${p.stock})`, 'error');
       beep(false);
       return;
     }
@@ -79,10 +84,24 @@ export function PosClient({ business, products, categories, customers }: { busin
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return products
-      .filter((p) => (!category || p.category_id === category) && (!q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.barcode?.toLowerCase().includes(q)))
-      .slice(0, 60);
+    return products.filter((p) =>
+      (!category || p.category_id === category) &&
+      (!q || p.name.toLowerCase().includes(q) || p.variant_label?.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.barcode?.toLowerCase().includes(q))
+    );
   }, [products, query, category]);
+
+  // Las variantes de un mismo producto se muestran en una sola tarjeta.
+  const tiles = useMemo<Tile[]>(() => {
+    const out: Tile[] = [];
+    const groups = new Map<string, Extract<Tile, { kind: 'group' }>>();
+    for (const p of filtered) {
+      if (!p.group_id) { out.push({ kind: 'single', product: p }); continue; }
+      let g = groups.get(p.group_id);
+      if (!g) { g = { kind: 'group', id: p.group_id, name: p.name, image_url: p.image_url, variants: [] }; groups.set(p.group_id, g); out.push(g); }
+      g.variants.push(p);
+    }
+    return out.slice(0, 60);
+  }, [filtered]);
 
   function onSearchKey(e: React.KeyboardEvent) {
     if (e.key !== 'Enter') return;
@@ -92,6 +111,7 @@ export function PosClient({ business, products, categories, customers }: { busin
     const exact = products.find((p) => p.barcode?.toLowerCase() === q || p.sku.toLowerCase() === q);
     if (exact) { addProduct(exact); setQuery(''); }
     else if (filtered.length === 1) { addProduct(filtered[0]); setQuery(''); }
+    else if (tiles.length === 1 && tiles[0].kind === 'group') setPicker(tiles[0]);
   }
 
   function setQty(id: string, qty: number) {
@@ -167,27 +187,46 @@ export function PosClient({ business, products, categories, customers }: { busin
             <p className="mt-1 text-sm text-slate-500">Agrégalos primero para poder vender.</p>
             <Link href="/products/new" className="btn-primary mt-4">Agregar producto</Link>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : tiles.length === 0 ? (
           <p className="card p-10 text-center text-sm text-slate-500">No se encontraron productos.</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((p) => {
-              const out = p.track_stock && p.stock <= 0;
+            {tiles.map((t) => {
+              const isGroup = t.kind === 'group';
+              const name = isGroup ? t.name : t.product.name;
+              const img = isGroup ? t.image_url : t.product.image_url;
+              const list = isGroup ? t.variants : [t.product];
+              const prices = list.map((v) => v.price);
+              const minP = Math.min(...prices), maxP = Math.max(...prices);
+              const tracked = list.filter((v) => v.track_stock);
+              const totalStock = tracked.reduce((a, v) => a + v.stock, 0);
+              const allOut = tracked.length === list.length && totalStock <= 0;
+              const anyLow = tracked.some((v) => v.stock > 0 && v.stock <= v.min_stock);
               return (
-                <button key={p.id} disabled={out} onClick={() => addProduct(p)} className="card group overflow-hidden text-left transition hover:border-brand-400 hover:shadow-md disabled:opacity-50">
-                  <div className="flex aspect-[4/3] items-center justify-center bg-slate-100">
-                    {p.image_url ? (
+                <button
+                  key={isGroup ? 'g' + t.id : t.product.id}
+                  disabled={allOut}
+                  onClick={() => (isGroup ? setPicker(t) : addProduct(t.product))}
+                  className={`card group relative overflow-hidden text-left transition hover:border-brand-400 hover:shadow-md disabled:opacity-50 ${anyLow ? 'ring-1 ring-amber-300' : ''}`}
+                >
+                  <div className="relative flex aspect-[4/3] items-center justify-center bg-slate-100">
+                    {img ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <img src={img} alt="" className="h-full w-full object-cover" loading="lazy" />
                     ) : (
                       <Package className="text-slate-300" size={32} />
                     )}
+                    {isGroup && <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-violet-600 px-2 py-0.5 text-xs font-medium text-white"><Layers size={12} /> {list.length}</span>}
                   </div>
                   <div className="p-3">
-                    <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-tight text-slate-800">{p.name}</p>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="font-bold text-brand-700">{fmt(p.price)}</span>
-                      {p.track_stock && <span className={`text-xs ${out ? 'font-semibold text-red-600' : 'text-slate-400'}`}>{out ? 'Agotado' : `${p.stock} uds`}</span>}
+                    <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-tight text-slate-800">{name}{!isGroup && t.product.variant_label ? ` · ${t.product.variant_label}` : ''}</p>
+                    <div className="mt-1 flex items-center justify-between gap-1">
+                      <span className="text-sm font-bold text-brand-700">{minP === maxP ? fmt(minP) : `${fmt(minP)}+`}</span>
+                      {tracked.length > 0 && (
+                        <span className={`badge ${allOut ? 'bg-red-100 text-red-700' : anyLow ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {allOut ? 'Agotado' : anyLow ? `Bajo · ${totalStock}` : `${totalStock} uds`}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -198,7 +237,7 @@ export function PosClient({ business, products, categories, customers }: { busin
       </section>
 
       {/* Carrito */}
-      <aside id="cart" className="lg:sticky lg:top-6 lg:self-start">
+      <aside id="cart" className="lg:sticky lg:top-20 lg:self-start">
         <div className="card flex flex-col">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
             <h2 className="flex items-center gap-2 font-semibold"><ShoppingCart size={18} /> Venta actual</h2>
@@ -213,7 +252,7 @@ export function PosClient({ business, products, categories, customers }: { busin
                 {cart.map((l) => (
                   <li key={l.product.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{l.product.name}</p>
+                      <p className="truncate text-sm font-medium">{displayName(l.product)}</p>
                       <p className="text-xs text-slate-500">{fmt(l.product.price)} c/u</p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -230,14 +269,8 @@ export function PosClient({ business, products, categories, customers }: { busin
           </div>
 
           <div className="space-y-4 border-t border-slate-200 p-5">
+            <CustomerPicker business={business} customers={customers} value={customerId} onChange={setCustomerId} onCreated={(c) => setCustomers((p) => [...p, c].sort((a, b) => a.name.localeCompare(b.name)))} />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">Cliente</label>
-                <select className="input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                  <option value="">Consumidor final</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
               <div>
                 <label className="label">Descuento</label>
                 <input className="input" inputMode="decimal" placeholder="0.00" value={discount} onChange={(e) => setDiscount(e.target.value)} />
@@ -285,6 +318,29 @@ export function PosClient({ business, products, categories, customers }: { busin
           <span>{fmt(totals.total)}</span>
         </a>
       )}
+
+      <Modal open={!!picker} onClose={() => setPicker(null)} title={picker?.name ?? ''}>
+        <p className="mb-3 text-sm text-slate-500">Toca una variante para agregarla. Puedes agregar varias.</p>
+        <ul className="divide-y divide-slate-100">
+          {picker?.variants.map((v) => {
+            const inCart = cart.find((l) => l.product.id === v.id)?.qty ?? 0;
+            const out = v.track_stock && v.stock <= 0;
+            const low = v.track_stock && v.stock > 0 && v.stock <= v.min_stock;
+            return (
+              <li key={v.id}>
+                <button disabled={out} onClick={() => addProduct(v)} className="flex w-full items-center justify-between gap-3 py-3 text-left disabled:opacity-40">
+                  <div>
+                    <p className="font-medium">{v.variant_label}</p>
+                    <p className="text-xs text-slate-500">{fmt(v.price)}{inCart > 0 && <span className="ml-2 font-semibold text-brand-700">· {inCart} en el carrito</span>}</p>
+                  </div>
+                  <span className={`badge ${out ? 'bg-red-100 text-red-700' : low ? 'bg-amber-100 text-amber-700' : 'bg-brand-50 text-brand-700'}`}>{!v.track_stock ? 'Disponible' : out ? 'Agotado' : `${v.stock} uds`}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <button className="btn-primary mt-4 w-full" onClick={() => setPicker(null)}>Listo</button>
+      </Modal>
 
       <CameraScanner open={camera} onClose={() => setCamera(false)} onDetected={handleCode} continuous />
     </div>

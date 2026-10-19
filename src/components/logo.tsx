@@ -7,7 +7,7 @@ export function Logo({ href = '/', dark = false }: { href?: string; dark?: boole
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
         <Boxes size={18} />
       </span>
-      <span className={`text-xl font-bold tracking-tight ${dark ? 'text-white' : 'text-slate-900'}`}>Stocko</span>
+      <span className={`text-xl font-bold tracking-tight ${dark ? 'text-white' : 'text-slate-900'}`}>Stockery</span>
     </Link>
   );
 }

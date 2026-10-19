@@ -3,7 +3,7 @@ import './globals.css';
 import { ToastProvider } from '@/components/toast';
 
 export const metadata: Metadata = {
-  title: { default: 'Stocko · Inventario y ventas para tu negocio', template: '%s · Stocko' },
+  title: { default: 'Stockery · Inventario y ventas para tu negocio', template: '%s · Stockery' },
   description: 'Punto de venta, inventario, facturas y reportes en la nube. Escanea productos con tu lector de código de barras o con la cámara.',
   icons: { icon: '/favicon.svg' },
 };

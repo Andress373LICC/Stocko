@@ -36,6 +36,13 @@ export interface Product {
   track_stock: boolean;
   image_url: string | null;
   active: boolean;
+  group_id: string | null;
+  variant_label: string | null;
+}
+
+/** Nombre completo para mostrar: "Tenis Runner · 40 / Negro". */
+export function displayName(p: { name: string; variant_label?: string | null }): string {
+  return p.variant_label ? `${p.name} · ${p.variant_label}` : p.name;
 }
 
 export interface Customer {

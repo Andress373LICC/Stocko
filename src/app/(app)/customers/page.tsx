@@ -10,7 +10,7 @@ export default async function CustomersPage() {
   const { data } = await supabase.from('customers').select('*').eq('business_id', business.id).order('name').range(0, 2999);
   return (
     <>
-      <PageHeader title="Clientes" description="Tu lista de clientes para asociarlos a las ventas." />
+      <PageHeader title="Clientes" description="Registra clientes con solo nombre y teléfono, y consulta lo que han comprado." />
       <CustomersClient businessId={business.id} initial={(data as any) ?? []} />
     </>
   );

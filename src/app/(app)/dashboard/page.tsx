@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DollarSign, Receipt, Package, AlertTriangle, Users, ScanBarcode, ArrowRight } from 'lucide-react';
+import { DollarSign, Receipt, Package, AlertTriangle, Users, ScanBarcode, ArrowRight, ClipboardList } from 'lucide-react';
 import { getContext, isAdminRole } from '@/lib/session';
 import { addDays, dayKey, dateTime, money, shortDay } from '@/lib/format';
 import { PageHeader, Stat } from '@/components/ui';
@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   }
 
   const { data } = await supabase.rpc('dashboard_summary', { p_business_id: business.id, p_tz: business.timezone });
-  const s: any = data ?? { today: { revenue: 0, count: 0 }, daily: [], products_count: 0, customers_count: 0, low_stock_count: 0, low_stock: [] };
+  const s: any = data ?? { today: { revenue: 0, count: 0 }, daily: [], products_count: 0, customers_count: 0, low_stock_count: 0, out_count: 0, low_stock: [] };
 
   const today = dayKey(new Date(), business.timezone);
   const byDay = new Map<string, number>((s.daily as any[]).map((d) => [d.day, Number(d.total)]));
@@ -56,10 +56,28 @@ export default async function DashboardPage() {
         actions={<Link href="/pos" className="btn-primary"><ScanBarcode size={18} /> Nueva venta</Link>}
       />
 
+      {(s.out_count > 0 || s.low_stock_count > 0) && (
+        <div className={`mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-4 ${s.out_count > 0 ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'}`}>
+          <div className="flex items-center gap-3">
+            <AlertTriangle className={s.out_count > 0 ? 'text-red-600' : 'text-amber-600'} />
+            <p className={`text-sm font-medium ${s.out_count > 0 ? 'text-red-800' : 'text-amber-800'}`}>
+              {s.out_count > 0 && <><b>{s.out_count}</b> {s.out_count === 1 ? 'producto agotado' : 'productos agotados'}</>}
+              {s.out_count > 0 && s.low_stock_count - s.out_count > 0 && ' y '}
+              {s.low_stock_count - s.out_count > 0 && <><b>{s.low_stock_count - s.out_count}</b> por agotarse</>}
+              . Repón antes de quedarte sin stock.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/products?stock=out" className="btn-secondary btn-sm">Ver agotados</Link>
+            <Link href="/products/reorder" className="btn-primary btn-sm"><ClipboardList size={14} /> Lista de pedido</Link>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Ventas de hoy" value={money(s.today.revenue, business)} sub={`${s.today.count} ${s.today.count === 1 ? 'venta' : 'ventas'}`} icon={<DollarSign size={22} />} />
         <Stat label="Productos activos" value={s.products_count} icon={<Package size={22} />} tone="sky" />
-        <Stat label="Stock bajo" value={s.low_stock_count} sub="Productos por reponer" icon={<AlertTriangle size={22} />} tone={s.low_stock_count > 0 ? 'amber' : 'brand'} />
+        <Stat label="Stock bajo" value={s.low_stock_count} sub={s.out_count > 0 ? `${s.out_count} agotados` : 'Productos por reponer'} icon={<AlertTriangle size={22} />} tone={s.out_count > 0 ? 'red' : s.low_stock_count > 0 ? 'amber' : 'brand'} />
         <Stat label="Clientes" value={s.customers_count} icon={<Users size={22} />} tone="violet" />
       </div>
 
@@ -73,7 +91,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="card p-5">
-          <h2 className="mb-3 font-semibold">Productos por reponer</h2>
+          <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">Productos por reponer</h2><Link href="/products?stock=low" className="text-xs font-medium text-brand-700 hover:underline">Ver todos</Link></div>
           {s.low_stock.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-500">Todo el inventario está en orden ✅</p>
           ) : (
@@ -105,7 +123,7 @@ export default async function DashboardPage() {
                 <Link href={`/sales/${r.id}`} className="flex items-center justify-between px-5 py-3 text-sm hover:bg-slate-50">
                   <div>
                     <p className="font-medium text-slate-800">Venta #{r.number}{r.status === 'voided' && <span className="badge ml-2 bg-red-100 text-red-700">Anulada</span>}</p>
-                    <p className="text-xs text-slate-500">{r.customer_name || 'Consumidor final'} · {dateTime(r.created_at, business)}</p>
+                    <p className="text-xs text-slate-500">{r.customer_name || 'Cliente general'} · {dateTime(r.created_at, business)}</p>
                   </div>
                   <span className="font-semibold">{money(r.total, business)}</span>
                 </Link>

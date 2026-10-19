@@ -83,7 +83,7 @@ export function OnboardingForm({ detectedCountry }: { detectedCountry: string })
 
   return (
     <>
-      <h1 className="text-xl font-bold">¡Bienvenido a Stocko! 👋</h1>
+      <h1 className="text-xl font-bold">¡Bienvenido a Stockery! 👋</h1>
       <p className="mt-1 text-sm text-slate-500">Un último paso para dejar todo listo.</p>
 
       <div className="mt-5 grid grid-cols-2 rounded-lg bg-slate-100 p-1 text-sm font-medium">

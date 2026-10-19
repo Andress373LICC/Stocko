@@ -7,7 +7,7 @@ const AUTH_PAGES = ['/login', '/signup', '/forgot-password'];
 export async function middleware(request: NextRequest) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return new NextResponse(
-      'Stocko: faltan las variables NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY. Agrégalas en Vercel → Settings → Environment Variables y vuelve a desplegar.',
+      'Stockery: faltan las variables NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY. Agrégalas en Vercel → Settings → Environment Variables y vuelve a desplegar.',
       { status: 500 }
     );
   }

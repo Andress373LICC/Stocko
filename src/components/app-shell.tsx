@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ScanBarcode, Package, Users, Receipt, BarChart3, Settings, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, ScanBarcode, Package, Users, Receipt, BarChart3, Settings, Menu, X, LogOut, Search } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { GlobalSearch } from '@/components/global-search';
 import type { Role } from '@/lib/types';
 
 const NAV = [
@@ -19,9 +20,22 @@ const NAV = [
 
 const ROLE_LABEL: Record<Role, string> = { owner: 'Propietario', admin: 'Administrador', cashier: 'Cajero' };
 
-export function AppShell({ businessName, userName, role, children }: { businessName: string; userName: string; role: Role; children: React.ReactNode }) {
+export function AppShell({ businessId, businessName, userName, role, children }: { businessId: string; businessName: string; userName: string; role: Role; children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Atajo global: Ctrl+K (o ⌘K en Mac) abre la búsqueda rápida.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const isAdmin = role !== 'cashier';
   const items = NAV.filter((n) => !n.admin || isAdmin);
 
@@ -71,7 +85,7 @@ export function AppShell({ businessName, userName, role, children }: { businessN
       <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
         <button onClick={() => setOpen(true)} aria-label="Abrir menú" className="rounded-md p-1.5 text-slate-600 hover:bg-slate-100"><Menu size={22} /></button>
         <Logo href="/dashboard" />
-        <span className="w-8" />
+        <button onClick={() => setSearchOpen(true)} aria-label="Buscar" className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50"><Search size={22} /></button>
       </header>
       {open && (
         <div className="no-print fixed inset-0 z-40 lg:hidden">
@@ -90,7 +104,19 @@ export function AppShell({ businessName, userName, role, children }: { businessN
         </div>
       )}
 
-      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      <div className="min-w-0 flex-1">
+        {/* Barra superior de escritorio: búsqueda siempre visible */}
+        <div className="no-print sticky top-0 z-30 hidden items-center gap-3 border-b border-slate-200 bg-white/90 px-8 py-3 backdrop-blur lg:flex">
+          <button onClick={() => setSearchOpen(true)} className="flex w-full max-w-xl items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-left text-sm text-slate-500 shadow-sm hover:border-brand-400">
+            <Search size={18} className="text-slate-400" />
+            <span className="flex-1">Buscar producto, código de barras o cliente…</span>
+            <kbd className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-xs font-medium text-slate-500">Ctrl K</kbd>
+          </button>
+          <Link href="/pos" className="btn-primary ml-auto"><ScanBarcode size={18} /> Nueva venta</Link>
+        </div>
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+      </div>
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} businessId={businessId} role={role} />
     </div>
   );
 }

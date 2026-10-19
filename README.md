@@ -1,4 +1,4 @@
-# Stocko
+# Stockery
 
 Inventario, punto de venta, recibos/facturas y reportes en la nube, para cualquier negocio.
 Multi-negocio: cada persona crea su cuenta y su negocio, y sus datos quedan aislados de los demás.
@@ -9,41 +9,47 @@ Multi-negocio: cada persona crea su cuenta y su negocio, y sus datos quedan aisl
 
 - Cuentas de usuario (registro, login, recuperar contraseña) y **equipo con roles** (propietario, administrador, cajero) mediante código de invitación.
 - **Detección automática de país**: al crear el negocio se sugieren moneda, nombre del impuesto, porcentaje y si los precios lo incluyen. Todo se puede editar después.
-- **Punto de venta** con carrito, descuento, cliente, métodos de pago y cálculo de cambio.
+- **Búsqueda ultra-rápida**: barra siempre visible arriba y atajo **Ctrl + K** (⌘K en Mac) para encontrar productos, códigos de barras, clientes y páginas al instante.
+- **Punto de venta** con carrito, descuento, métodos de pago y cálculo de cambio. **Cliente general (mostrador)** por defecto; registro express de cliente nuevo con solo *nombre + teléfono*; al elegir un cliente se ve su **última compra**.
+- **Variantes** (talla, color…): un producto matriz con todas sus combinaciones, cada una con su código de barras, precio y stock. Se muestran agrupadas en inventario y en caja.
+- **Alertas de stock**: indicadores rojo (agotado) y amarillo (por agotarse), filtros rápidos, avisos en el inicio y **lista de pedido** lista para copiar a WhatsApp o imprimir.
+- **Historial por cliente**: total comprado, última compra, lo que más compra y cada ticket con sus productos.
 - **Escáneres**: USB/Bluetooth (modo teclado, sin drivers), puerto serie (COM) y cámara del celular.
 - **Inventario**: productos con imagen, categorías, costo, código de barras, stock mínimo, ajustes e historial de movimientos.
 - **Recibos y facturas** imprimibles en ticket 80 mm o A4; anulación de ventas con devolución de stock.
 - **Reportes**: ventas por día, ticket promedio, ganancia estimada, impuestos, productos más vendidos, métodos de pago y ventas por cajero.
 
-> Los recibos de Stocko son comprobantes internos. No sustituyen la factura fiscal autorizada por la autoridad tributaria de tu país. Las tasas de impuestos por país son valores sugeridos: confírmalas con tu contador.
+> Los recibos de Stockery son comprobantes internos. No sustituyen la factura fiscal autorizada por la autoridad tributaria de tu país. Las tasas de impuestos por país son valores sugeridos: confírmalas con tu contador.
 
 ---
 
 ## Puesta en marcha (todo desde el navegador, sin instalar nada)
 
 ### 1. Subir el código a GitHub
-1. Crea un repositorio nuevo en GitHub llamado `stocko` (vacío).
+1. Crea un repositorio nuevo en GitHub llamado `stockery` (vacío).
 2. Entra a **Add file → Upload files** y arrastra **el contenido** de esta carpeta (incluidos `src`, `supabase`, `public` y los archivos de la raíz). No subas `node_modules` ni `.next`.
 3. Pulsa **Commit changes**.
 
 ### 2. Crear la base de datos en Supabase
 1. Crea una cuenta en https://supabase.com y un **New project** (guarda la contraseña de la base de datos).
 2. Ve a **SQL Editor → New query**, pega **todo** el contenido de `supabase/schema.sql` y pulsa **Run**. Debe terminar sin errores (ejecútalo una sola vez).
+
+> **¿Ya tenías la versión anterior instalada (cuando se llamaba Stocko)?** No ejecutes `schema.sql`. En su lugar pega y ejecuta **solo** `supabase/migrations/002_variantes_alertas_clientes.sql`. Conserva todos tus datos y agrega variantes, alertas de stock y el catálogo agrupado.
 3. Ve a **Project Settings → API** y copia:
    - **Project URL**
    - **anon public key**
 
 ### 3. Publicar en Vercel
-1. En https://vercel.com entra con tu cuenta de GitHub → **Add New → Project** → importa `stocko`.
+1. En https://vercel.com entra con tu cuenta de GitHub → **Add New → Project** → importa `stockery`.
 2. En **Environment Variables** agrega:
    - `NEXT_PUBLIC_SUPABASE_URL` = tu Project URL
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = tu anon public key
-3. Pulsa **Deploy**. Al terminar tendrás una URL como `https://stocko-xxxx.vercel.app`.
+3. Pulsa **Deploy**. Al terminar tendrás una URL como `https://stockery-xxxx.vercel.app`.
 
 ### 4. Conectar Supabase con tu dominio (importante)
 En Supabase → **Authentication → URL Configuration**:
-- **Site URL:** tu URL de Vercel (ej. `https://stocko-xxxx.vercel.app`)
-- **Redirect URLs:** agrega `https://stocko-xxxx.vercel.app/**` (y tu dominio propio si lo conectas).
+- **Site URL:** tu URL de Vercel (ej. `https://stockery-xxxx.vercel.app`)
+- **Redirect URLs:** agrega `https://stockery-xxxx.vercel.app/**` (y tu dominio propio si lo conectas).
 
 Sin esto, los enlaces de confirmación de correo y de recuperar contraseña no funcionarán.
 
@@ -53,6 +59,15 @@ Sin esto, los enlaces de confirmación de correo y de recuperar contraseña no f
 - Para **producción**: configura un SMTP propio (Resend, Brevo, etc.) en Authentication → SMTP Settings y deja la confirmación activada.
 
 ---
+
+## Atajos de teclado
+
+| Atajo | Acción |
+|---|---|
+| `Ctrl + K` / `⌘ K` | Búsqueda rápida (producto, código de barras, cliente, páginas) |
+| `↑` `↓` `Enter` | Moverse y abrir resultados en la búsqueda |
+| `Esc` | Cerrar ventanas |
+| *Escanear* | En el punto de venta agrega el producto al carrito, estés donde estés |
 
 ## Uso de escáneres de código de barras
 
@@ -72,7 +87,8 @@ Todo el soporte está aislado en `src/lib/scanner/` y `src/components/camera-sca
 ## Estructura del proyecto
 
 ```
-supabase/schema.sql          Base de datos completa: tablas, seguridad (RLS), funciones de venta/stock/reportes
+supabase/schema.sql          Base de datos completa (instalación nueva): tablas, seguridad (RLS), funciones de venta/stock/reportes/variantes
+supabase/migrations/         Migraciones para quienes ya tienen una versión instalada
 src/middleware.ts            Protege rutas y refresca la sesión
 src/lib/countries.ts         País → moneda, impuesto y formato sugeridos (agrega aquí más países)
 src/lib/scanner/             Escáneres (teclado/HID, puerto serie)
@@ -95,4 +111,4 @@ npm run dev
 ```
 
 ## Ideas para siguientes versiones
-Importar/exportar productos por CSV, compras a proveedores, múltiples sucursales, cierre de caja, ventas a crédito, etiquetas con códigos de barras, inicio de sesión con Google, modo sin conexión (PWA) y facturación fiscal electrónica según cada país.
+Importar/exportar productos por CSV, compras a proveedores y pedidos automáticos, múltiples sucursales, cierre de caja, ventas a crédito, etiquetas con códigos de barras, inicio de sesión con Google, modo sin conexión (PWA) y facturación fiscal electrónica según cada país.
